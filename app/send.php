@@ -15,11 +15,12 @@ declare(strict_types=1);
 function usageAndExit(): never
 {
     fwrite(STDERR, <<<EOF
-    usage: send.php --text "message" [--url "https://..."] [--chat-id ID] [--dry-run]
+    usage: send.php --text "message" [--url "https://..."] [--chat-id ID] [--raw] [--dry-run]
 
     env:   TELEGRAM_BOT_TOKEN   bot token from @BotFather
            TELEGRAM_CHAT_ID     default chat id (overridable with --chat-id)
 
+    --raw sends the text as-is (caller is responsible for MarkdownV2 escaping).
     --dry-run prints the request payload instead of calling the Telegram API.
 
     EOF);
@@ -41,10 +42,39 @@ function escapeMarkdownV2Url(string $url): string
 function buildMessageText(string $text, ?string $url): string
 {
     if ($url === null) {
-        return escapeMarkdownV2($text);
+        return escapeMarkdownV2PreservingLinks($text);
     }
 
     return '[' . escapeMarkdownV2($text) . '](' . escapeMarkdownV2Url($url) . ')';
+}
+
+/**
+ * Escapes MarkdownV2 special characters, but keeps inline [text](url)
+ * constructs as working links (their text/url parts escaped separately).
+ */
+function escapeMarkdownV2PreservingLinks(string $text): string
+{
+    $parts = preg_split(
+        '/\[([^\[\]]+)\]\(([^()\s]+)\)/',
+        $text,
+        -1,
+        PREG_SPLIT_DELIM_CAPTURE,
+    );
+
+    if ($parts === false) {
+        return escapeMarkdownV2($text);
+    }
+
+    // parts repeat as: plain, link text, link url, plain, ...
+    $result = '';
+    foreach (array_chunk($parts, 3) as $chunk) {
+        $result .= escapeMarkdownV2($chunk[0]);
+        if (isset($chunk[1], $chunk[2])) {
+            $result .= '[' . escapeMarkdownV2($chunk[1]) . '](' . escapeMarkdownV2Url($chunk[2]) . ')';
+        }
+    }
+
+    return $result;
 }
 
 function sendMessage(string $token, string $chatId, string $text): array
@@ -64,7 +94,6 @@ function sendMessage(string $token, string $chatId, string $text): array
     ]);
     $body = curl_exec($ch);
     $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
 
     if ($body === false) {
         fwrite(STDERR, "telegram-send: curl request failed\n");
@@ -87,6 +116,7 @@ array_shift($argv);
 $text = null;
 $url = null;
 $chatId = null;
+$isRaw = false;
 $dryRun = false;
 
 $i = 0;
@@ -97,6 +127,7 @@ while ($i < $count) {
         '--text' => $text = $argv[++$i] ?? usageAndExit(),
         '--url' => $url = $argv[++$i] ?? usageAndExit(),
         '--chat-id' => $chatId = $argv[++$i] ?? usageAndExit(),
+        '--raw' => $isRaw = true,
         '--dry-run' => $dryRun = true,
         '-h', '--help' => usageAndExit(),
         default => usageAndExit(),
@@ -116,7 +147,7 @@ if ($chatId === '') {
     exit(1);
 }
 
-$messageText = buildMessageText($text, $url);
+$messageText = $isRaw ? $text : buildMessageText($text, $url);
 
 if ($dryRun) {
     echo json_encode([

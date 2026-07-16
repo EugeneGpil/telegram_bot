@@ -58,7 +58,7 @@ telegram-send --text "hello"
 
 ```bash
 make send TEXT="message" [URL="https://..."] [CHAT_ID="..."] [DRY_RUN=1]
-telegram-send --text "message" [--url "https://..."] [--chat-id ID] [--dry-run]
+telegram-send --text "message" [--url "https://..."] [--chat-id ID] [--raw] [--dry-run]
 ```
 
 Examples:
@@ -79,12 +79,23 @@ before sending for real.
 
 ## Link formatting
 
-When `--url` is given, the message is sent with `parse_mode: MarkdownV2` and
-the text formatted as `[text](url)`, which Telegram renders as a hyperlink
-showing only the text — the recipient never sees the brackets/parentheses.
-Without `--url`, the text is still sent through MarkdownV2 (escaped), so
-literal `` _ * [ ] ( ) ~ ` > # + - = | { } . ! `` characters in your message
-show up as plain text rather than triggering formatting.
+Two ways to send a link:
+
+1. **`--url` flag** — the whole message becomes one hyperlink:
+   `--text "click here" --url "https://example.com"` arrives as a single
+   clickable "click here".
+2. **Inline `[text](url)` in the message** — any such construct inside
+   `--text` is kept as a working link, mixed with normal text:
+   `--text "see [the log](https://ci.example.com/42) and fix it"` arrives
+   as "see the log and fix it" with "the log" clickable.
+
+Everything else is MarkdownV2-escaped, so literal
+`` _ * [ ] ( ) ~ ` > # + - = | { } . ! `` characters in your message show up
+as plain text rather than triggering formatting or API errors.
+
+`--raw` skips all escaping and sends the text as-is with
+`parse_mode: MarkdownV2` — for callers that build a fully-escaped MarkdownV2
+message themselves (bold, multiple links, etc.), e.g. the `daily` skill.
 
 ## Configuration (.env)
 

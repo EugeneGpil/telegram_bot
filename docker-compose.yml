@@ -1,0 +1,12 @@
+services:
+  telegram:
+    build:
+      context: .
+      network: host
+    image: telegram-send-php:local
+    working_dir: /repo
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    volumes:
+      - .:/repo

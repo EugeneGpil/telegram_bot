@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Thin wrapper so `telegram-send --text ... [--url ...]` works from anywhere.
+
+# resolve the real script location even when called through a symlink (portable: no readlink -f on macOS)
+SELF="$0"
+while [ -h "$SELF" ]; do
+    DIR="$(cd -P "$(dirname "$SELF")" && pwd)"
+    SELF="$(readlink "$SELF")"
+    case "$SELF" in /*) ;; *) SELF="$DIR/$SELF" ;; esac
+done
+REPO="$(cd -P "$(dirname "$SELF")/.." && pwd)"
+
+exec docker compose --project-directory "$REPO" run --rm telegram php app/send.php "$@"

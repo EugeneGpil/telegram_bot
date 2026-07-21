@@ -1,12 +1,22 @@
 services:
-  telegram:
+  telegram: &base
     build:
-      context: .
+      context: docker
       network: host
     image: telegram-send-php:local
-    working_dir: /repo
+    working_dir: /repo/app
+    # run as the host user so runtime files (sqlite db, logs) stay editable on the host
+    user: "1000:1000"
     environment:
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      HOME: /tmp
+      COMPOSER_HOME: /tmp/composer
     volumes:
       - .:/repo
+
+  # Laravel scheduler: runs telegram:dispatch every minute to deliver messages
+  # queued with --at. Start once with `docker compose up -d dispatcher`; comes
+  # back on its own after reboots (as long as the Docker daemon starts at boot).
+  dispatcher:
+    <<: *base
+    restart: unless-stopped
+    command: php artisan schedule:work

@@ -10,4 +10,4 @@ while [ -h "$SELF" ]; do
 done
 REPO="$(cd -P "$(dirname "$SELF")/.." && pwd)"
 
-exec docker compose --project-directory "$REPO" run --rm telegram php app/send.php "$@"
+exec docker compose --project-directory "$REPO" run --rm telegram php artisan telegram:send "$@"

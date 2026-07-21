@@ -14,9 +14,8 @@ Everything is an artisan command under the hood:
 | `telegram:scheduled` | List pending messages |
 | `telegram:cancelled` | List messages that were cancelled instead of sent |
 
-The Laravel app lives in `app/`, Docker files in `docker/`;
-`docker-compose.yml`, `.env`, and the `Makefile` stay in the repo root
-(Laravel is pointed at the root `.env` in `app/bootstrap/app.php`).
+The Laravel app lives in `app/` (including its `.env`), Docker files in
+`docker/`; `docker-compose.yml` and the `Makefile` stay in the repo root.
 Scheduled messages live in SQLite (`app/database/database.sqlite`,
 git-ignored) as `App\Models\ScheduledMessage` rows; sending goes through
 `App\Services\Telegram`; MarkdownV2 escaping lives in `App\Support\MarkdownV2`.
@@ -46,10 +45,10 @@ step 2 — the group's id is negative.
 
 ```bash
 cd /my_dev/telegram_bot
-cp .env.example .env
+cp app/.env.example app/.env
 ```
 
-Fill in `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`, then:
+Fill in `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `app/.env`, then:
 
 ```bash
 make build                          # build the PHP image
@@ -113,7 +112,7 @@ telegram-send --text "release day" --at "2026-07-25 09:30"
 make send TEXT="standup!" AT="10:00"
 ```
 
-Times are interpreted in `SCHEDULE_TZ` from `.env` (default `+07:00`).
+Times are interpreted in `SCHEDULE_TZ` from `app/.env` (default `+07:00`).
 
 Start the dispatcher — a container running the Laravel scheduler
 (`php artisan schedule:work`), which runs `telegram:dispatch` every minute:
@@ -165,7 +164,7 @@ as plain text rather than triggering formatting or API errors.
 `parse_mode: MarkdownV2` — for callers that build a fully-escaped MarkdownV2
 message themselves (bold, multiple links, etc.), e.g. the `daily` skill.
 
-## Configuration (.env)
+## Configuration (app/.env)
 
 | Variable | Meaning |
 |---|---|

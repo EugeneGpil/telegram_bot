@@ -18,6 +18,4 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
-    })->create()
-    // .env lives in the repo root, one level above the Laravel app
-    ->useEnvironmentPath(dirname(__DIR__, 2));
+    })->create();
